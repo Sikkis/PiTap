@@ -9,16 +9,19 @@ echo "\______   \   \__    ___/  _  \\______   \ "
 echo " |     ___/   | |    | /  /_\  \|     ___/ "
 echo " |    |   |   | |    |/    |    \    |     "
 echo " |____|   |___| |____|\____|__  /____|     "
-echo "                              \/      ${red}v0.3 Usb${reset}"
+echo "                              \/      ${red}v0.3${reset}"
 echo ""
 
 #Set Variables
-time=86400 #seconds
-interface=any #wlan0 #eth0
+#The time that the tcpdump will be running in seconds.
+duration=86400
+#The inteface of the tcpdump
+interface=any
+#The stored directory
 directory=/media/USB #directory to mount usb
 counter=1 # counter for tcpdump file.
 
-cd $directory
+
 
 #Check if you are running as a root
 if [ "$EUID" -ne 0 ]
@@ -36,7 +39,7 @@ then
 fi
 
 sudo mount -t vfat -o rw /dev/sda /media/USB
-
+cd $directory
 #Start passive monitoring 
 while [ 1 ]
 do  

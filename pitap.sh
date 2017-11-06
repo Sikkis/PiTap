@@ -14,30 +14,72 @@ echo ""
 echo "Use CTRL+C to exit"
 echo ""
 
-#Set Variables
-interface=eth0		#interface
-directory=~/loot 	#directory to save the files
-duration=10 		#seconds duration
-bytes=1 		#maximum bytes per file
+#Set Variables before running the script.
 
-if [ ! -d "$directory" ]
-then
-	mkdir ~/loot
-fi
+#Interface to be monitored.
+interface=any
+#Directory to save the data change between local and usb directory.
+directory=~/loot
+#directory=/media/USB
+#Duration in seconds(default to one day).
+duration=86400
+#Counter for the tcpdump file.
+counter=1
 
-cd $directory
-
-#Check if you are running as a root
+#Check if you are running as a root.
 if [ "$EUID" -ne 0 ]
   then echo "Please run as root"
   exit
 fi
 
-#Start passive monitoring 
+if [ $directory == "/media/USB" ]
+#Remote Directory
+then
+  #Wait until usb is recognized.
+  sleep 10
 
-#Run tcpdump for x seconds
-echo "Tcpdump on interface $interface"
-#port is in used modify if not need.
+  #Mount USB.
+  if [ ! -d "$directory" ]
+  then
+    mkdir /media/USB
+  fi
 
-tcpdump 'portrange <select port range> or port <select port>'-n -s 0 -G $duration -C $bytes -i $interface -w  trace-%Y-%m-%d_%H:%M:%S  &>/dev/null
-echo "Exiting from pitap"
+  sudo mount -t vfat -o rw /dev/sda /media/USB
+
+else
+#Local Directory.
+  if [ ! -d "$directory" ]
+  then
+  mkdir $directory
+  fi
+fi
+
+cd $directory
+
+#Start passive monitoring .
+while [ 1 ]
+do  
+
+    #Run tcpdump for x seconds.
+    file=tcpdump$counter.pcap
+    echo "Tcpdump started on interface $interface time $(date +'%m-%d-%Y:%H:%M:%S')."
+    
+    tcpdump -G $duration -W 1 -i $interface -s 0 -w $file &>/dev/null
+    echo "Tcpdump finished. "
+    echo " "
+    
+    #Compress and rewrite Logfile.
+    echo "Compressing Logfile starting to run in the background."
+    tar_file="$(date +'%m-%d-%Y_%H-%M-%S').tar.gz"
+    tar -czvf $tar_file $file &>/dev/null &
+    echo " "
+    
+    #Keep 2 log files so it can rewrite the previous and tar the new.
+    if [ $counter -eq 2 ]
+    then
+        counter=1
+    else
+        counter=$(($counter+1))
+    fi
+
+done
